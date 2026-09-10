@@ -15,6 +15,10 @@ const td = new TurndownService({
   bulletListMarker: '-',
   emDelimiter: '*',
   hr: '---',
+  blankReplacement: (_content, node) =>
+    node.nodeName === 'DIV' && /\bgithub-gist\b/.test(node.getAttribute?.('class') ?? '')
+      ? gistToMarkdown(node)
+      : node.isBlock ? '\n\n' : '',
 });
 
 // Substack wraps heading text in <strong>; a heading is already bold, so drop the markers.
@@ -71,6 +75,31 @@ td.addRule('footnote', {
     return `\n\n[^${n}]: ${md}\n\n`;
   },
 });
+
+// GitHub gist embeds: Substack stores GitHub's rendered HTML in data-attrs.innerHTML (not as child
+// nodes), so turndown would drop them. Rebuild a fenced code block from that HTML instead.
+function gistToMarkdown(node) {
+  let inner = '';
+  try { inner = JSON.parse(node.getAttribute('data-attrs') ?? '{}').innerHTML ?? ''; } catch { return ''; }
+  const doc = node.ownerDocument.createElement('div');
+  doc.innerHTML = inner;
+  const lang =
+    inner.match(/highlight-source-([a-z]+)/)?.[1] ??
+    inner.match(/\btype-([a-z]+)\b/)?.[1]?.replace(/^javascript$/, 'js') ??
+    '';
+  // Markdown gists render as <pre>; code-file gists render as a table, one line per td.js-file-line.
+  let lines = [...doc.querySelectorAll('td.js-file-line')].map((td) => td.textContent);
+  if (lines.length === 0) {
+    const pre = doc.querySelector('pre');
+    if (!pre) return '';
+    lines = pre.textContent.replace(/\n$/, '').split('\n');
+  }
+  const link = doc.querySelector('.gist-meta a[href*="gist.github.com"]:not([href*="/raw/"])')?.getAttribute('href') ?? '';
+  const src = link ? `\n\n<small><a href="${link}">View gist</a></small>` : '';
+  return `\n\n\`\`\`${lang}\n${lines.join('\n')}\n\`\`\`${src}\n\n`;
+}
+const isGist = (node) => node.nodeName === 'DIV' && /\bgithub-gist\b/.test(node.getAttribute?.('class') ?? '');
+td.addRule('githubGist', { filter: isGist, replacement: (_c, node) => gistToMarkdown(node) });
 
 // YouTube embeds carry the id in a data attribute; emit a plain link.
 td.addRule('youtube', {
