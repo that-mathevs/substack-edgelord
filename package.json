@@ -9,6 +9,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "import": "node scripts/import-export.mjs",
+    "import:wordpress": "node scripts/import-wordpress.mjs",
     "sync": "node scripts/sync-rss.mjs"
   },
   "dependencies": {

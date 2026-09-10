@@ -46,6 +46,7 @@ hostname, then uncomment the `routes` block in `wrangler.jsonc` and push. The ne
 | `src/content/posts/*.md` | Mirrored posts. Frontmatter: `title`, `date`, `slug`, `canonical`, `excerpt`, `updated`, `sourceHash` |
 | `scripts/sync-rss.mjs` | Hourly sync from RSS |
 | `scripts/import-export.mjs` | One-time backfill from a Substack export |
+| `scripts/import-wordpress.mjs` | Backfill from a WordPress site's REST API |
 | `scripts/lib/post.mjs` | HTML → markdown (Turndown + Substack cleanup rules), image vendoring, change detection |
 | `worker/feed-proxy.js` | Cloudflare Worker that fetches the feed for CI |
 | `.github/workflows/sync.yml` | The cron |

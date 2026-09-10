@@ -37,13 +37,36 @@ td.addRule('substackWidgets', {
   replacement: () => '',
 });
 
+/** Lazy-loading plugins park a 1x1 placeholder in src and the real URL in a data attribute. */
+function realImageSrc(img) {
+  for (const attr of ['data-src', 'data-lazy-src', 'data-orig-file', 'data-large-file', 'src']) {
+    const v = img.getAttribute(attr);
+    if (v && !v.startsWith('data:')) return v;
+  }
+  const srcset = img.getAttribute('data-srcset') ?? img.getAttribute('srcset') ?? '';
+  const first = srcset.split(',')[0]?.trim().split(/\s+/)[0];
+  return first && !first.startsWith('data:') ? first : '';
+}
+
+// Plain <img> outside a figure: same placeholder problem.
+td.addRule('img', {
+  filter: 'img',
+  replacement: (_content, node) => {
+    const src = realImageSrc(node);
+    if (!src) return '';
+    const alt = (node.getAttribute('alt') ?? '').replace(/[\[\]]/g, '');
+    return `![${alt}](${/[\s()]/.test(src) ? `<${src}>` : src})`;
+  },
+});
+
 // <figure> (Substack wraps images in figure > a > picture > img, + figcaption).
 td.addRule('figure', {
   filter: 'figure',
   replacement: (_content, node) => {
     const img = node.querySelector('img');
     if (!img) return '';
-    const src = img.getAttribute('src') ?? '';
+    const src = realImageSrc(img);
+    if (!src) return '';
     const caption = (node.querySelector('figcaption')?.textContent ?? img.getAttribute('alt') ?? '')
       .replace(/\s+/g, ' ')
       .trim();
@@ -161,8 +184,13 @@ export function toMarkdownFile({ title, date, slug, canonical, excerpt, markdown
   return `${frontmatter}\n\n${markdown}\n`;
 }
 
-const SUBSTACK_IMAGE = /^https:\/\/(substackcdn\.com\/image\/fetch\/|substack-post-media\.s3\.amazonaws\.com\/)/;
 const EXT_BY_TYPE = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif', 'image/webp': '.webp', 'image/avif': '.avif', 'image/svg+xml': '.svg' };
+const OWN_HOST = new URL(site.site).host;
+
+/** Vendor any absolute image that isn't already ours. */
+const shouldVendor = (url) => {
+  try { const u = new URL(url); return /^https?:$/.test(u.protocol) && u.host !== OWN_HOST; } catch { return false; }
+};
 
 /** Resolve a substackcdn "fetch" URL to the original S3 URL it wraps (or return the URL unchanged). */
 function originalImageUrl(url) {
@@ -170,7 +198,9 @@ function originalImageUrl(url) {
   if (url.startsWith('https://substackcdn.com/image/fetch/') && i !== -1) {
     try { return decodeURIComponent(url.slice(i + 1)); } catch { /* fall through */ }
   }
-  return url;
+  // WordPress serves resized copies as name-WxH.ext; the original has no size suffix.
+  if (/\/wp-content\/uploads\//.test(url)) return url.replace(/-\d+x\d+(\.[a-z0-9]+)(\?.*)?$/i, '$1');
+  return url.replace(/\?.*$/, '');
 }
 
 /**
@@ -180,7 +210,7 @@ function originalImageUrl(url) {
 export async function vendorImages(markdown) {
   const refs = [...markdown.matchAll(/!\[[^\]]*\]\(<?(https:\/\/[^\s)>]+)>?\)/g)]
     .map((m) => m[1])
-    .filter((u) => SUBSTACK_IMAGE.test(u));
+    .filter(shouldVendor);
   if (refs.length === 0) return markdown;
   mkdirSync(IMAGES_DIR, { recursive: true });
 
