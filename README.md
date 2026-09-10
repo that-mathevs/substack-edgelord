@@ -10,6 +10,7 @@ No server, no database, no CMS. Substack stays the editor and the mailing list. 
 2. The commit triggers a Cloudflare build. Astro renders the markdown to HTML. Cloudflare serves
    `dist/` as static assets on a Worker.
 3. Substack blocks GitHub's runner IPs, so the feed is fetched through a ten-line Cloudflare Worker.
+   The Worker also cache-busts the request, because Substack's CDN serves a stale `/feed` for up to an hour.
 
 ## Setup
 

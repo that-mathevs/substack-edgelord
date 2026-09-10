@@ -14,7 +14,10 @@ async function fetchFeed(attempts = 4) {
   let last;
   for (let i = 0; i < attempts; i++) {
     if (i > 0) await new Promise((r) => setTimeout(r, 15_000 * i));
-    const res = await fetch(FEED_URL, {
+    // Substack's CDN caches /feed for up to an hour; a unique query string forces a fresh copy.
+    const url = new URL(FEED_URL);
+    url.searchParams.set('t', Date.now().toString());
+    const res = await fetch(url, {
       headers: { 'user-agent': 'Mozilla/5.0 (compatible; substack-edgelord; +' + site.site + ')' },
     });
     if (res.ok) return res.text();

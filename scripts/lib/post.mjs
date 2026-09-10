@@ -17,6 +17,12 @@ const td = new TurndownService({
   hr: '---',
 });
 
+// Substack wraps heading text in <strong>; a heading is already bold, so drop the markers.
+td.addRule('headingStrong', {
+  filter: (node) => /^(STRONG|B)$/.test(node.nodeName) && /^H[1-6]$/.test(node.parentNode?.nodeName ?? ''),
+  replacement: (content) => content,
+});
+
 // Substack chrome that has no place in a mirror: subscribe/share widgets, buttons, polls.
 td.addRule('substackWidgets', {
   filter: (node) =>
