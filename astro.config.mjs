@@ -8,4 +8,5 @@ export default defineConfig({
   trailingSlash: 'never',
   build: { format: 'file' },
   integrations: [sitemap()],
+  markdown: { shikiConfig: { theme: 'github-light' } },
 });
