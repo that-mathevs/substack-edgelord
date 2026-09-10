@@ -1,0 +1,51 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import site from '../../../site.config.mjs';
+import { blogPosting } from '../../lib/schema';
+
+export async function getStaticPaths() {
+  const posts = (await getCollection('posts')).sort((a, b) => a.data.date.valueOf() - b.data.date.valueOf());
+  return posts.map((post, i) => ({ params: { slug: post.data.slug }, props: { post, number: i + 1 } }));
+}
+
+const { post, number } = Astro.props;
+const { Content } = await render(post);
+const fmt = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+const url = `${site.site}/p/${post.data.slug}`;
+const canonical = site.selfCanonical ? url : post.data.canonical;
+const wordCount = (post.body ?? '').split(/\s+/).filter(Boolean).length;
+const jsonLd = [blogPosting({ title: post.data.title, description: post.data.excerpt, url, date: post.data.date, updated: post.data.updated, wordCount, substackUrl: post.data.canonical })];
+---
+
+<Base title={post.data.title} description={post.data.excerpt} canonical={canonical} type="article" published={post.data.date} modified={post.data.updated} jsonLd={jsonLd}>
+  <article class="post">
+    <header class="post__head">
+      <div class="rail kicker">
+        <span>
+          No. {String(number).padStart(3, '0')} / <time datetime={post.data.date.toISOString()}>{fmt.format(post.data.date)}</time>
+          {post.data.updated && <> / Updated <time datetime={post.data.updated.toISOString()}>{fmt.format(post.data.updated)}</time></>}
+        </span>
+        <a href={post.data.canonical}>Originally on Substack ↗</a>
+      </div>
+      <h1 class="display post__title">{post.data.title}</h1>
+      {post.data.excerpt && <p class="post__sub">{post.data.excerpt}</p>}
+    </header>
+    <div class="prose measure"><Content /></div>
+    <aside class="post__callout measure">
+      <span class="kicker">On Substack</span>
+      <p>This post lives on Substack. <a href={post.data.canonical}>Read it there</a> to comment or share, and <a href={`${site.substack}/subscribe`}>subscribe</a> to get new posts by email.</p>
+    </aside>
+  </article>
+</Base>
+
+<style>
+  .post { padding-top: clamp(2rem, 5vw, 4rem); }
+  .post__head { margin-bottom: clamp(2rem, 4vw, 3.5rem); padding-bottom: 1.5rem; border-bottom: 2px solid var(--ink); }
+  .post__head .rail { margin-bottom: clamp(1.5rem, 3vw, 2.5rem); }
+  .post__title { font-size: var(--t-big); max-width: 18ch; }
+  .post__sub { font-weight: 500; font-size: var(--t-med); line-height: 1.25; letter-spacing: -0.015em; color: var(--mute); max-width: 34ch; margin: 1.25rem 0 0; }
+  .post__callout { margin-top: 3.5rem; padding-top: 1rem; border-top: 2px solid var(--ink); }
+  .post__callout p { margin: 0.6rem 0 0; }
+  .post__callout a { text-decoration: underline; font-weight: 600; }
+</style>

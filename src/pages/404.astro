@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import site from '../../site.config.mjs';
+---
+
+<Base title="Not found" canonical={site.site}>
+  <section class="wide nf">
+    <div class="rail kicker"><span>Error / 404</span><span>Nothing here</span></div>
+    <h1 class="display nf__title">Not found<span class="dot" aria-hidden="true"></span></h1>
+    <p class="kicker">That page doesn’t exist here. It might still live on <a href={site.substack}>Substack</a>, or start from the <a href="/">index</a>.</p>
+  </section>
+</Base>
+
+<style>
+  .nf { padding-top: clamp(2rem, 5vw, 4rem); }
+  .nf .rail { margin-bottom: 2rem; }
+  .nf__title { font-size: var(--t-mega); font-weight: 900; letter-spacing: -0.055em; line-height: 0.85; margin-bottom: 2rem; }
+</style>

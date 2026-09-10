@@ -1,0 +1,14 @@
+{
+  // Cloudflare Workers config. With Git builds connected, every push to main runs
+  // `npm run build` then `npx wrangler deploy`, which serves ./dist as static assets.
+  "name": "substack-edgelord",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  }
+  // Once your domain is a zone in Cloudflare with no conflicting DNS records, bind it:
+  // "workers_dev": false,
+  // "routes": [{ "pattern": "example.com", "custom_domain": true }]
+}

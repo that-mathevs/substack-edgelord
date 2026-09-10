@@ -1,0 +1,41 @@
+name: Sync from Substack
+
+on:
+  schedule:
+    - cron: '17 * * * *' # hourly, off the top of the hour to dodge GitHub's busiest minute
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: substack-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Fetch feed and write new posts
+        id: sync
+        run: npm run sync
+        env:
+          FEED_URL: ${{ vars.FEED_URL }}
+
+      - name: Commit and push new posts
+        if: steps.sync.outputs.written != '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/posts public/images
+          git commit -m "sync: ${{ steps.sync.outputs.slugs }}"
+          git push
