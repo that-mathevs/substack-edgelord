@@ -18,7 +18,7 @@ export const website = {
   author: person,
 };
 
-export function blogPosting(p: { title: string; description: string; url: string; date: Date; updated?: Date; wordCount: number; substackUrl: string }) {
+export function blogPosting(p: { title: string; description: string; url: string; date: Date; updated?: Date; wordCount: number; substackUrl?: string }) {
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -30,6 +30,6 @@ export function blogPosting(p: { title: string; description: string; url: string
     author: person,
     wordCount: p.wordCount,
     isPartOf: { '@id': `${site.site}/#website` },
-    sameAs: p.substackUrl,
+    ...(p.substackUrl ? { sameAs: p.substackUrl } : {}),
   };
 }

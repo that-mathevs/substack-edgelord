@@ -17,8 +17,9 @@ const canonical = site.selfCanonical ? url : post.data.canonical;
 const wordCount = (post.body ?? '').split(/\s+/).filter(Boolean).length;
 const sourceHost = new URL(post.data.canonical).hostname;
 const onSubstack = /substack\.com$/.test(sourceHost);
+const selfHosted = sourceHost === new URL(site.site).hostname;
 const sourceName = onSubstack ? 'Substack' : sourceHost;
-const jsonLd = [blogPosting({ title: post.data.title, description: post.data.excerpt, url, date: post.data.date, updated: post.data.updated, wordCount, substackUrl: post.data.canonical })];
+const jsonLd = [blogPosting({ title: post.data.title, description: post.data.excerpt, url, date: post.data.date, updated: post.data.updated, wordCount, substackUrl: selfHosted ? undefined : post.data.canonical })];
 ---
 
 <Base title={post.data.title} description={post.data.excerpt} canonical={canonical} type="article" published={post.data.date} modified={post.data.updated} jsonLd={jsonLd}>
@@ -29,7 +30,7 @@ const jsonLd = [blogPosting({ title: post.data.title, description: post.data.exc
           No. {String(number).padStart(3, '0')} / <time datetime={post.data.date.toISOString()}>{fmt.format(post.data.date)}</time>
           {post.data.updated && <> / Updated <time datetime={post.data.updated.toISOString()}>{fmt.format(post.data.updated)}</time></>}
         </span>
-        <a href={post.data.canonical}>Originally on {sourceName} ↗</a>
+        {!selfHosted && <a href={post.data.canonical}>Originally on {sourceName} ↗</a>}
       </div>
       <h1 class="display post__title">{post.data.title}</h1>
       {post.data.excerpt && <p class="post__sub">{post.data.excerpt}</p>}
@@ -39,6 +40,8 @@ const jsonLd = [blogPosting({ title: post.data.title, description: post.data.exc
       <span class="kicker">On Substack</span>
       {onSubstack ? (
         <p>This post lives on Substack. <a href={post.data.canonical}>Read it there</a> to comment or share, and <a href={`${site.substack}/subscribe`}>subscribe</a> to get new posts by email.</p>
+      ) : selfHosted ? (
+        <p>New posts go out on Substack. <a href={`${site.substack}/subscribe`}>Subscribe</a> to get them by email.</p>
       ) : (
         <p>Originally published on <a href={post.data.canonical}>{sourceHost}</a>. New posts go out on Substack; <a href={`${site.substack}/subscribe`}>subscribe</a> to get them by email.</p>
       )}

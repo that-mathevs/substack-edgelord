@@ -6,14 +6,17 @@
 // --skip      comma-separated slugs to leave out (e.g. posts already mirrored from elsewhere)
 // --insecure  accept an expired/invalid TLS certificate on the source site
 // --force     rewrite posts even when the source HTML hasn't changed
+// --no-source make posts canonical to this site and drop the link back to the source
 
 import { writePost } from './lib/post.mjs';
+import site from '../site.config.mjs';
 
 const args = process.argv.slice(2);
 const base = args.find((a) => /^https?:\/\//.test(a))?.replace(/\/$/, '');
 const skip = new Set((args[args.indexOf('--skip') + 1] ?? '').split(',').filter(Boolean));
 if (args.includes('--insecure')) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const force = args.includes('--force');
+const noSource = args.includes('--no-source');
 if (!base) { console.error('usage: node scripts/import-wordpress.mjs https://site [--skip a,b] [--insecure] [--force]'); process.exit(1); }
 
 const decode = (s) => String(s ?? '')
@@ -48,9 +51,9 @@ for (;;) {
       title: decode(post.title.rendered),
       date: `${post.date_gmt}Z`,
       slug: post.slug,
-      canonical: post.link,
+      canonical: noSource ? `${site.site}/p/${post.slug}` : post.link,
       excerpt: excerptOf(post),
-      html: post.content.rendered,
+      html: noSource ? post.content.rendered.replaceAll(base, site.site.replace(/\/$/, '') + '/p').replace(/\/p\/([a-z0-9-]+)\/(?=["'])/g, '/p/$1') : post.content.rendered,
     }, { force });
     if (status) { written++; console.log(`${status} ${post.slug}.md`); } else unchanged++;
   }
