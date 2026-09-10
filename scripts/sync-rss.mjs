@@ -9,20 +9,25 @@ import site from '../site.config.mjs';
 // Substack blocks GitHub runner IPs, so CI fetches via a Cloudflare Worker proxy (FEED_URL env var).
 const FEED_URL = process.env.FEED_URL || `${site.substack}/feed`;
 
-// Substack occasionally answers 429 to the proxy; retry a few times with backoff before giving up.
-async function fetchFeed(attempts = 4) {
+// Substack's CDN caches /feed for up to an hour, so we ask for a fresh copy with a unique query
+// string (the Worker forwards it). Substack rate-limits those origin hits with 429s, so back off
+// between attempts, and on the last attempt accept the CDN-cached copy rather than fail the hour.
+async function fetchFeed(attempts = 5) {
   let last;
   for (let i = 0; i < attempts; i++) {
-    if (i > 0) await new Promise((r) => setTimeout(r, 15_000 * i));
-    // Substack's CDN caches /feed for up to an hour; a unique query string forces a fresh copy.
+    if (i > 0) await new Promise((r) => setTimeout(r, 30_000 * i));
     const url = new URL(FEED_URL);
-    url.searchParams.set('t', Date.now().toString());
+    const fresh = i < attempts - 1;
+    if (fresh) url.searchParams.set('t', Date.now().toString());
     const res = await fetch(url, {
       headers: { 'user-agent': 'Mozilla/5.0 (compatible; substack-edgelord; +' + site.site + ')' },
     });
-    if (res.ok) return res.text();
+    if (res.ok) {
+      if (!fresh) console.warn('using the CDN-cached feed; new posts may be up to an hour late');
+      return res.text();
+    }
     last = `${res.status} ${res.statusText}`;
-    console.warn(`feed fetch attempt ${i + 1}/${attempts} failed: ${last}`);
+    console.warn(`feed fetch attempt ${i + 1}/${attempts} (${fresh ? 'fresh' : 'cached'}) failed: ${last}`);
     if (res.status < 429) break; // 4xx other than 429 won't improve with retries
   }
   console.error(`feed fetch failed: ${last}`);
