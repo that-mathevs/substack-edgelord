@@ -23,12 +23,18 @@ async function fetchFeed(attempts = 5) {
       headers: { 'user-agent': 'Mozilla/5.0 (compatible; substack-edgelord; +' + site.site + ')' },
     });
     if (res.ok) {
-      if (!fresh) console.warn('using the CDN-cached feed; new posts may be up to an hour late');
+      if (res.headers.get('x-feed-stale')) console.warn('Substack is rate-limiting; using the Worker\'s last good copy of the feed');
+      else if (!fresh) console.warn('using the CDN-cached feed; new posts may be up to an hour late');
       return res.text();
     }
     last = `${res.status} ${res.statusText}`;
     console.warn(`feed fetch attempt ${i + 1}/${attempts} (${fresh ? 'fresh' : 'cached'}) failed: ${last}`);
     if (res.status < 429) break; // 4xx other than 429 won't improve with retries
+  }
+  if (last.startsWith('429')) {
+    // Substack throttles for longer than we're willing to wait. This runs every hour; skip this one.
+    console.warn(`feed unavailable this run (${last}); nothing changed, will try again next hour`);
+    process.exit(0);
   }
   console.error(`feed fetch failed: ${last}`);
   process.exit(1);

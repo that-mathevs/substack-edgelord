@@ -27,7 +27,9 @@ npm run build
 The RSS feed only carries the ~20 most recent posts; the export has everything.
 
 **3. Feed proxy.** In Cloudflare: Workers & Pages → Create → Hello World. Paste `worker/feed-proxy.js`,
-set `FEED` to your newsletter's `/feed` URL, deploy. Copy the Worker URL.
+set `FEED` to your newsletter's `/feed` URL, deploy. Copy the Worker URL. Optional but recommended:
+give the Worker a custom domain (Settings → Domains & Routes) so it can keep a last-good copy of the
+feed for the minutes when Substack rate-limits; the Cache API is a no-op on `*.workers.dev`.
 
 **4. GitHub.** Push this repo. Under Settings → Secrets and variables → Actions → Variables, add
 `FEED_URL` with the Worker URL. The sync workflow now runs at :17 every hour, or on demand.
