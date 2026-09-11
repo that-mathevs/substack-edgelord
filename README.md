@@ -32,7 +32,8 @@ give the Worker a custom domain (Settings → Domains & Routes) so it can keep a
 feed for the minutes when Substack rate-limits; the Cache API is a no-op on `*.workers.dev`.
 
 **4. GitHub.** Push this repo. Under Settings → Secrets and variables → Actions → Variables, add
-`FEED_URL` with the Worker URL. The sync workflow now runs at :17 every hour, or on demand.
+`FEED_URL` with the Worker URL. The sync workflow runs at :17 every hour, or on demand. Until that
+variable exists the workflow skips itself, so a fresh fork doesn't fail every hour.
 
 **5. Deploy.** In Cloudflare: Workers & Pages → Create → Workers → Import a repository. Cloudflare
 detects Astro, runs `npm run build`, and deploys with `npx wrangler deploy` using `wrangler.jsonc`.
